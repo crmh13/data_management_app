@@ -1,0 +1,24 @@
+version: '3'
+services:
+  app:
+    build: .
+    env_file: ./app.env
+    environment:
+      - TZ=Asia/Tokyo
+    volumes:
+      - ./app:/app
+    ports:
+      - "3000:3000"
+    tty: true
+    command: /bin/sh
+  db:
+    image: postgres:14.5-alpine
+    container_name: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - ./db-store:/var/lib/postgresql/data
+    env_file:
+      - ./postgres.env
+    environment: 
+      - TZ=Asia/Tokyo

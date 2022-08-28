@@ -1,0 +1,49 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model type_mst {
+  id Int @id @default(autoincrement())
+  type_name String @db.VarChar(255)
+  delete_flg Boolean @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+  management management_data[]
+  @@index(fields: [delete_flg])
+}
+
+model management_data {
+  id Int @id @default(autoincrement())
+  type type_mst @relation(fields: [type_id], references: [id])
+  type_id Int
+  data_name String @db.VarChar(255)
+  current_num Int
+  delete_flg Boolean @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+  data_history data_history[]
+  @@index(fields: [type_id])
+  @@index(fields: [delete_flg])
+}
+
+model data_history {
+  id Int @id @default(autoincrement())
+  management management_data @relation(fields: [management_id], references: [id])
+  management_id Int
+  change_num Int
+  change_reason String @db.VarChar(255)
+  comment String? @db.Text
+  delete_flg Boolean @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+  @@index(fields: management_id)
+  @@index(fields: delete_flg)
+}
