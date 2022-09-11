@@ -41,6 +41,7 @@ model data_history {
   change_num Int
   change_reason String @db.VarChar(255)
   comment String? @db.Text
+  change_date DateTime
   delete_flg Boolean @default(false)
   created_at DateTime @default(now())
   updated_at DateTime @default(now())

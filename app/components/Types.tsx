@@ -6,6 +6,7 @@ import Title from './Title';
 interface TypesProps {
   url?: string;
   title?: string;
+  num?: number;
   children?: React.ReactNode;
 }
 
@@ -20,7 +21,7 @@ export default function Types(props: TypesProps) {
         <Link color="primary" href={props.url}>{props.title}</Link>
       </Title>
       <Typography component="p" variant="h4">
-        3,024
+        {props.num?.toLocaleString()}
       </Typography>
       <Typography component="div" align="right">
         <Link color="primary" href="#" onClick={preventDefault}>
