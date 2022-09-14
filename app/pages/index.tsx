@@ -28,6 +28,7 @@ const GET_TYPES = gql `
 const CREATE_TYPE = gql `
   mutation($typeName: String!) {
     createType(type_name: $typeName) {
+      id
       type_name
     }
   }
@@ -40,8 +41,26 @@ type InputTypeName = {
 const Home: NextPage = () => {
   const { data, loading, error } = useQuery(GET_TYPES);
   const [createType] = useMutation(CREATE_TYPE, {
-    refetchQueries: ['GetTypes'],
+    update (cache, { data: { createType }} ) {
+      cache.modify({
+        fields: {
+          types(existingTypeRefs = []){
+            const newTypeRef = cache.writeFragment({
+              data: createType,
+              fragment: gql`
+                fragment NewType on Type {
+                  id
+                  type_name
+                }
+              `
+            })
+            return [...existingTypeRefs, newTypeRef];
+          }
+        }
+      })
+    }
   });
+
   const {
     control,
     handleSubmit,
@@ -60,6 +79,7 @@ const Home: NextPage = () => {
     )
   }
   if (error) return <p>エラーが発生しています</p>;
+
   const { types } = data;
 
   const validationRules = {

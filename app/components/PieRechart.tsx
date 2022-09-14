@@ -4,27 +4,26 @@ import { PieChart, ResponsiveContainer, Pie } from 'recharts';
 import Typography from '@mui/material/Typography';
 import Title from './Title';
 
-const data = [
-  {
-    index: 0,
-    name: 'テスト口座1',
-    value: 1000,
-  },
-  {
-    index: 2,
-    name: 'テスト口座2',
-    value: 2000,
-  }
-];
+const createData = (index: number, name: string, value: number) => {
+  return { index, name, value };
+}
 
-export default function PieRechart() {
+export default function PieRechart(props: any) {
+  const data = props.data.map((data: any, index: number) => {
+    return createData(index, data.data_name, data.current_num);
+  })
+  let totalNum = 0;
+  for (const d of data) {
+    totalNum += d.value;
+  }
+
   const theme = useTheme();
 
   return (
     <React.Fragment>
       <Title>合計</Title>
       <Typography component="p" variant="h4">
-        3,000
+        {totalNum.toLocaleString()}
       </Typography>
       <ResponsiveContainer>
         <PieChart

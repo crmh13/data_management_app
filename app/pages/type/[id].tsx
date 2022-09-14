@@ -1,11 +1,13 @@
 import * as React from 'react';
 import type { NextPage } from 'next'
 import { useRouter } from 'next/router'
+import { useForm, SubmitHandler, Controller } from 'react-hook-form'
+import { gql, useQuery, useMutation } from '@apollo/client'
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
-import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
+import Stack from '@mui/material/Stack';
 import {
   DataGrid,
   GridColDef,
@@ -15,13 +17,16 @@ import {
   GridCsvExportOptions,
   jaJP,
 } from '@mui/x-data-grid';
+import Backdrop from '@mui/material/Backdrop';
+import CircularProgress from '@mui/material/CircularProgress'
 import LayoutComponent from '../../components/layout';
 import Types from '../../components/Types';
 import Histories from '../../components/History';
 import PieRechart from '../../components/PieRechart';
 import Title from '../../components/Title';
 
-function CustomToolbar() {
+// CSV出力用のツールバー
+const CustomToolbar = ()  => {
   const csvOptions: GridCsvExportOptions = {
     fileName: 'data.csv',
     utf8WithBom: true,
@@ -33,6 +38,7 @@ function CustomToolbar() {
   );
 }
 
+// データテーブル設定
 const columns: GridColDef[] = [
   { field: 'date', headerName: '日付', width: 150 },
   { field: 'dataName', headerName: '管理データ名', width: 150 },
@@ -61,93 +67,133 @@ const columns: GridColDef[] = [
   },
 ];
 
-// Generate Order Data
-function createData(
-  id: number,
-  date: string,
-  dataName: string,
-  changeNum: number,
-  changeReason: string,
-  comment: string,
-) {
-  return { id, date, dataName, changeNum, changeReason, comment };
+type historyType = {
+  id: number;
+  date: string;
+  dataName: string;
+  changeNum: number;
+  changeReason: string;
+  comment: string;
 }
 
-const rows = [
-  createData(
-    0,
-    '2022-09-01',
-    'テスト口座1',
-    -500,
-    'テスト',
-    'テストコメント',
-  ),
-  createData(
-    1,
-    '2022-09-01',
-    'テスト口座1',
-    500,
-    'テスト',
-    'テストコメント',
-  ),
-  createData(
-    2,
-    '2022-09-01',
-    'テスト口座1',
-    500,
-    'テスト',
-    'テストコメント',
-  ),
-  createData(
-    3,
-    '2022-09-01',
-    'テスト口座1',
-    5000000,
-    'テスト',
-    'テストコメント',
-  ),
-  createData(
-    4,
-    '2022-09-01',
-    'テスト口座2',
-    500,
-    'テスト',
-    'テストコメント',
-  ),
-  createData(
-    5,
-    '2022-09-01',
-    'テスト口座2',
-    800,
-    'テスト',
-    'テストコメント',
-  ),
-  createData(
-    6,
-    '2022-09-01',
-    'テスト口座2',
-    900,
-    'テスト',
-    'テストコメント',
-  ),
-  createData(
-    7,
-    '2022-08-01',
-    'テスト口座2',
-    100,
-    'テスト',
-    'テストコメント',
-  ),
-];
+const GET_MANAGEMENT_DATA = gql `
+  query GetManagementData($typeId: Int!) {
+    managementData(type_id: $typeId) {
+      id
+      data_name
+      current_num
+      data_history {
+        id
+        management_id
+        change_num
+        change_reason
+        comment
+        change_date
+      }
+    }
+  }
+`;
+
+const CREATE_MANAGEMENT_DATA = gql `
+  mutation($managementData: DataInput!) {
+    createData(management_data: $managementData) {
+      id
+      type_id
+      data_name
+      current_num
+    }
+  }
+`;
+
+type DataInput = {
+  typeId: number,
+  dataName: string,
+}
+
 
 const Type: NextPage = () => {
   const router = useRouter();
   const { id } = router.query;
+  const { data, loading, error } = useQuery(GET_MANAGEMENT_DATA, {
+    variables: { typeId: Number(id) }
+  });
+
+  const [createData] = useMutation(CREATE_MANAGEMENT_DATA, {
+    update (cache, { data: { createData } }) {
+      const cacheId = cache.identify(createData);
+      if (!cacheId) return;
+      cache.modify({
+        fields: {
+          managementData(dataRefs, { toReference }) {
+            return [toReference(cacheId), dataRefs];
+          }
+        }
+      })
+    }
+  });
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<DataInput>({
+    defaultValues: { dataName: '' }
+  })
   const [pageSize, setPageSize] = React.useState<number>(5);
+
+  if (loading) {
+    return (<Backdrop
+      sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+      open={true}
+    >
+      <CircularProgress color="inherit" />
+    </Backdrop>
+    )
+  }
+  if (error) return <p>エラーが発生しています</p>;
+
+  const { managementData } = data;
+  const rows: historyType[] = [];
+  managementData.forEach((data: any) => {
+    data.data_history.map((history: any) => {
+      rows.push({
+        id: history.id,
+        date: new Date(history.change_date).toLocaleDateString(),
+        dataName: data.data_name,
+        changeNum: history.change_num,
+        changeReason: history.change_reason,
+        comment: history.comment
+      });
+    })
+  })
+
+  if (rows) {
+    rows.sort((a, b): number => {
+      return a.date < b.date ? 1 : -1; 
+    })
+  }
+
+  const validationRules = {
+    addData: {
+      required: 'データ名を入力してください。',
+    }
+  }
+
+  const onSubmit: SubmitHandler<DataInput> = (data: DataInput) => {
+    createData({
+      variables: {
+        managementData: {
+          type_id: Number(id),
+          data_name: data.dataName,  
+        }
+      }
+    })
+  }
 
   return (
     <LayoutComponent>
-      <Grid item xs={12} md={4} lg={3}>
+      {managementData.map((data: any) => 
+        <Grid item xs={12} md={4} lg={3}>
         <Paper
           sx={{
             p: 2,
@@ -156,21 +202,10 @@ const Type: NextPage = () => {
             height: 150,
           }}
         >
-          <Types title='テスト口座1' url='/data/1' />
+          <Types title={data.data_name} url={`/data/${data.id}`} num={data.current_num} />
         </Paper>
       </Grid>
-      <Grid item xs={12} md={4} lg={3}>
-        <Paper
-          sx={{
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            height: 150,
-          }}
-        >
-          <Types title='テスト口座2' url='/data/2' />
-        </Paper>
-      </Grid>
+      )}
       <Grid item xs={12}>
         <Paper
           sx={{
@@ -180,10 +215,11 @@ const Type: NextPage = () => {
             height: 350,
           }}
         >
-          <PieRechart />
+          <PieRechart data={managementData} />
         </Paper>
       </Grid>
-      <Grid item xs={12}>
+      {rows &&
+        <Grid item xs={12}>
         <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
           <Histories>
             <div style={{ height: 411, width: '100%' }}>
@@ -205,27 +241,38 @@ const Type: NextPage = () => {
         </Histories>
         </Paper>
       </Grid>
+      }
       <Grid item xs={12}>
-        <Box
-          component="form"
-          autoComplete="off"
-          sx={{
-            '& .MuiTextField-root': {
-              mr: 1,
-              mb: 1,
-              width: {
-                xs: '30ch',
-                md: '50ch',
-                lg: '100ch'
-              }},
-            }}
-        >
           <Title>追加</Title>
-          <TextField required id="type" size="small" />
-          <Button variant="contained">
-            追加
-          </Button>
-        </Box>
+          <Stack component="form" noValidate  onSubmit={handleSubmit(onSubmit)}
+            sx={{
+              display: 'inline-block',
+              '& .MuiTextField-root': {
+                mr: 1,
+                mb: 1,
+                width: {
+                  xs: '30ch',
+                  md: '50ch',
+                  lg: '100ch'
+                }},
+              }}>
+            <Controller
+              name="dataName"
+              control={control}
+              rules={validationRules.addData}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  type="text"
+                  error={errors.dataName !== undefined}
+                  helperText={errors.dataName?.message}
+                  size="small" />
+              )}
+            />
+            <Button variant="contained" type="submit">
+              追加
+            </Button>
+          </Stack>
       </Grid>
     </LayoutComponent>
     )
