@@ -95,8 +95,14 @@ const resolvers = {
             }
           ]
         },
-        include: {
-          data_history: true,
+        select: {
+          id: true,
+          type_id: true,
+          data_name: true,
+          current_num: true,
+          data_history: {
+            where: { delete_flg: false }
+          }
         }
       })
     }
