@@ -1,8 +1,8 @@
 import * as React from 'react';
-import type { NextPage } from 'next'
-import { useRouter } from 'next/router'
-import { useForm, SubmitHandler, Controller } from 'react-hook-form'
-import { gql, useQuery, useMutation } from '@apollo/client'
+import type { NextPage } from 'next';
+import { useRouter } from 'next/router';
+import { useForm, SubmitHandler, Controller } from 'react-hook-form';
+import { gql, useQuery, useMutation } from '@apollo/client';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
@@ -135,6 +135,7 @@ const Type: NextPage = () => {
   const {
     control,
     handleSubmit,
+    reset,
     formState: { errors }
   } = useForm<DataInput>({
     defaultValues: { dataName: '' }
@@ -188,6 +189,7 @@ const Type: NextPage = () => {
         }
       }
     })
+    reset();
   }
 
   return (
