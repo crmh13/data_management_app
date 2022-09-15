@@ -1,12 +1,15 @@
 import * as React from 'react';
-import type { NextPage } from 'next'
-import { useRouter } from 'next/router'
+import type { NextPage } from 'next';
+import { useRouter } from 'next/router';
+import { useForm, SubmitHandler, Controller } from 'react-hook-form';
+import { gql, useQuery, useMutation } from '@apollo/client';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
+import Stack from '@mui/material/Stack';
 import {
   DataGrid,
   GridColDef,
@@ -16,11 +19,14 @@ import {
   GridCsvExportOptions,
   jaJP,
 } from '@mui/x-data-grid';
+import Backdrop from '@mui/material/Backdrop';
+import CircularProgress from '@mui/material/CircularProgress';
 import LayoutComponent from '../../components/layout';
 import Histories from '../../components/History';
 import Title from '../../components/Title';
 
-function CustomToolbar() {
+// CSV出力用のツールバー
+const CustomToolbar = ()  => {
   const csvOptions: GridCsvExportOptions = {
     fileName: 'data.csv',
     utf8WithBom: true,
@@ -32,6 +38,7 @@ function CustomToolbar() {
   );
 }
 
+// データテーブル設定
 const columns: GridColDef[] = [
   {
     field: 'date',
@@ -67,79 +74,135 @@ const columns: GridColDef[] = [
   },
 ];
 
-function createData(
-  id: number,
-  date: string,
-  changeNum: number,
-  changeReason: string,
-  comment: string,
-) {
-  return { id, date, changeNum, changeReason, comment };
+type historyType = {
+  id: number;
+  date: string;
+  changeNum: number;
+  changeReason: string;
+  comment: string;
 }
 
-const rows = [
-  createData(
-    0,
-    '2022-09-01',
-    500,
-    'テスト',
-    'テストコメント',
-  ),
-  createData(
-    1,
-    '2022-09-01',
-    -500,
-    'テスト',
-    'テストコメント',
-  ),
-  createData(
-    2,
-    '2022-09-01',
-    500,
-    'テスト',
-    'テストコメント',
-  ),
-  createData(
-    3,
-    '2022-09-01',
-    5000000,
-    'テスト',
-    'テストコメント',
-  ),
-  createData(
-    4,
-    '2022-09-01',
-    500,
-    'テスト',
-    'テストコメント',
-  ),
-  createData(
-    5,
-    '2022-09-01',
-    800,
-    'テスト',
-    'テストコメント',
-  ),
-  createData(
-    6,
-    '2022-09-01',
-    900,
-    'テスト',
-    'テストコメント',
-  ),
-  createData(
-    7,
-    '2022-08-01',
-    100,
-    'テスト',
-    'テストコメント',
-  ),
-];
+const GET_MANAGEMENT_DATA_AT_ID = gql `
+  query GetManagementDataAtId($dataId: Int!) {
+    managementDataAtId(data_id: $dataId) {
+      id
+      data_name
+      current_num
+      data_history {
+        id
+        management_id
+        change_num
+        change_reason
+        comment
+        change_date
+      }
+    }
+  }
+`;
+
+const ADD_HISTORY = gql `
+  mutation($dataHistory: HistoryInput!) {
+    addHistory(data_history: $dataHistory) {
+      id
+      management_id
+      change_num
+      change_reason
+      comment
+      change_date
+    }
+  }
+`;
+
+type HistoryInput = {
+  managementId: number,
+  changeDate: string,
+  changeNum: number,
+  changeReason: string,
+  comment?: string,
+  currentNum: number,
+}
 
 const Data: NextPage = () => {
   const router = useRouter();
   const { id } = router.query;
+  const { data, loading, error } = useQuery(GET_MANAGEMENT_DATA_AT_ID, {
+    variables: { dataId: Number(id) }
+  });
+
+  const [addHistory] = useMutation(ADD_HISTORY, {
+    refetchQueries: [{
+      query: GET_MANAGEMENT_DATA_AT_ID,
+      variables: { dataId: Number(id) }
+    }],
+  });
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors }
+  } = useForm<HistoryInput>({
+    defaultValues: {
+      changeDate: '',
+      changeNum: 0,
+      changeReason: '',
+      comment: '',
+    }
+  })
+
   const [pageSize, setPageSize] = React.useState<number>(5);
+
+  if (loading) {
+    return (<Backdrop
+      sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+      open={true}
+    >
+      <CircularProgress color="inherit" />
+    </Backdrop>
+    )
+  }
+  if (error) return <p>エラーが発生しています</p>;
+
+  const { managementDataAtId } = data;
+  const rows: historyType[] = [];
+  managementDataAtId.data_history.map((history: any) => {
+    rows.push({
+      id: history.id,
+      date: new Date(history.change_date).toLocaleDateString(),
+      changeNum: history.change_num,
+      changeReason: history.change_reason,
+      comment: history.comment
+    });
+  });
+
+  const validationRules = {
+    addDate: {
+      required: '日付を入力してください。',
+    },
+    addChangeNum: {
+      required: '変更値を入力してください。',
+    },
+    addChangeReason: {
+      required: '変更理由を入力してください。',
+    },
+  }
+
+  const onSubmit: SubmitHandler<HistoryInput> = (data: HistoryInput) => {
+    addHistory({
+      variables: {
+        dataHistory: {
+          management_id: Number(id),
+          change_date: data.changeDate,
+          change_num: Number(data.changeNum),
+          change_reason: data.changeReason,
+          comment: data.comment,
+          current_num: managementDataAtId.current_num + Number(data.changeNum)
+        }
+      }
+    })
+    reset();
+  }
+
 
   const changeCell = (v: any) => {
     console.log(v);
@@ -165,10 +228,10 @@ const Data: NextPage = () => {
           }}
         >
           <Title>
-            テスト口座1
+            {managementDataAtId.data_name}
           </Title>
           <Typography component="p" variant="h4">
-            3,024
+            {managementDataAtId.current_num.toLocaleString()}
           </Typography>
         </Paper>
       </Grid>
@@ -202,10 +265,10 @@ const Data: NextPage = () => {
         </Paper>
       </Grid>
       <Grid item xs={12}>
-        <Box
-          component="form"
-          autoComplete="off"
+        <Title>追加</Title>
+        <Stack component="form" noValidate  onSubmit={handleSubmit(onSubmit)}
           sx={{
+            display: 'inline-block',
             '& .MuiTextField-root': {
               mr: 1,
               mb: 1,
@@ -219,18 +282,62 @@ const Data: NextPage = () => {
                 xs: '40ch',
                 md: '40ch',
                 lg: '45ch'
-              } },
-            }}
-        >
-          <Title>追加</Title>
-          <TextField required id="type" size="small" type="date" />
-          <TextField required id="type" label="変更値" size="small" type="number" />
-          <TextField required id="type" label="変更理由" size="small" />
-          <TextField id="type" label="コメント" size="small" className='comment' />
-          <Button variant="contained">
+              }},
+            }}>
+          <Controller
+            name="changeDate"
+            control={control}
+            rules={validationRules.addDate}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                type="date"
+                error={errors.changeDate !== undefined}
+                helperText={errors.changeDate?.message}
+                size="small" />
+            )}
+          />
+          <Controller
+            name="changeNum"
+            control={control}
+            rules={validationRules.addChangeNum}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                type="number"
+                error={errors.changeNum !== undefined}
+                helperText={errors.changeNum?.message}
+                size="small" />
+            )}
+          />
+          <Controller
+            name="changeReason"
+            control={control}
+            rules={validationRules.addChangeReason}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                type="text"
+                error={errors.changeReason !== undefined}
+                helperText={errors.changeReason?.message}
+                size="small" />
+            )}
+          />
+          <Controller
+            name="comment"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                type="text"
+                size="small"
+                className='comment' />
+            )}
+          />
+          <Button variant="contained" type="submit">
             追加
           </Button>
-        </Box>
+        </Stack>
       </Grid>
     </LayoutComponent>
     )

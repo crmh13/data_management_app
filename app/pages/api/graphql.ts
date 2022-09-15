@@ -45,22 +45,33 @@ const typeDefs = gql`
     change_num: Int!
     change_reason: String!
     comment: String
-    change_date: Date
+    change_date: Date!
   }
 
   type Query {
     types: [Type]
     managementData(type_id: Int!): [ManagementData]
+    managementDataAtId(data_id: Int!): ManagementData
   }
 
   type Mutation {
     createType(type_name: String!): Type
     createData(management_data: DataInput!): ManagementData
+    addHistory(data_history: HistoryInput!): DataHistory
   }
 
   input DataInput {
     type_id: Int!
     data_name: String!
+  }
+
+  input HistoryInput {
+    management_id: Int!
+    change_date: Date!
+    change_num: Int!
+    change_reason: String!
+    comment: String
+    current_num: Int!
   }
 `;
 
@@ -105,6 +116,21 @@ const resolvers = {
           }
         }
       })
+    },
+    managementDataAtId: async (parent: undefined, args: {data_id: number}, context: Context) => {
+      return await context.prisma.management_data.findUnique({
+        where: { id: args.data_id },
+        select: {
+          id: true,
+          type_id: true,
+          data_name: true,
+          current_num: true,
+          data_history: {
+            orderBy:[{ change_date: 'desc' }],
+            where: { delete_flg: false }
+          }
+        },
+      })
     }
   },
   Mutation: {
@@ -125,6 +151,21 @@ const resolvers = {
           current_num: 0,
         }
       })
+    },
+    addHistory: async (parent: undefined, args: {data_history: any}, context: Context) => {
+      await context.prisma.data_history.create({
+        data: {
+          management_id: args.data_history.management_id,
+          change_num: args.data_history.change_num,
+          change_reason: args.data_history.change_reason,
+          change_date: args.data_history.change_date,
+          comment: args.data_history.comment,
+        }
+      });
+      await context.prisma.management_data.update({
+        where: { id: args.data_history.management_id },
+        data: { current_num: args.data_history.current_num }
+      });
     }
   }
 };

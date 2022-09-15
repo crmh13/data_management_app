@@ -64,6 +64,7 @@ const Home: NextPage = () => {
   const {
     control,
     handleSubmit,
+    reset,
     formState: { errors }
   } = useForm<InputTypeName>({
     defaultValues: { typeName: '' }
@@ -94,6 +95,7 @@ const Home: NextPage = () => {
         typeName: data.typeName,
       }
     })
+    reset();
   }
   
   const totalNum = (management: any): number => {
