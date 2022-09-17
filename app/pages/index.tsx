@@ -11,6 +11,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import LayoutComponent from '../components/layout';
 import Types from '../components/Types';
 import Title from '../components/Title';
+import { DataType } from '../types/type';
 
 const GET_TYPES = gql `
   query GetTypes {
@@ -121,7 +122,13 @@ const Home: NextPage = () => {
             height: 150,
           }}
         >
-          <Types title={type.type_name} url={`/type/${type.id}`} num={totalNum(type.management)} />
+          <Types
+            title={type.type_name}
+            url={`/type/${type.id}`}
+            num={totalNum(type.management)}
+            id={type.id}
+            dataType={DataType.Type}
+          />
         </Paper>
       </Grid>
       )}

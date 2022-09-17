@@ -24,6 +24,7 @@ import Types from '../../components/Types';
 import Histories from '../../components/History';
 import PieRechart from '../../components/PieRechart';
 import Title from '../../components/Title';
+import { DataType } from '../../types/type';
 
 // CSV出力用のツールバー
 const CustomToolbar = ()  => {
@@ -204,7 +205,13 @@ const Type: NextPage = () => {
             height: 150,
           }}
         >
-          <Types title={data.data_name} url={`/data/${data.id}`} num={data.current_num} />
+          <Types
+            title={data.data_name}
+            url={`/data/${data.id}`}
+            num={data.current_num}
+            id={data.id}
+            dataType={DataType.Data}
+          />
         </Paper>
       </Grid>
       )}
