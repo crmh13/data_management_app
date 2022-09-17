@@ -19,6 +19,11 @@ import {
   GridCsvExportOptions,
   jaJP,
 } from '@mui/x-data-grid';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
 import LayoutComponent from '../../components/layout';
@@ -80,6 +85,7 @@ type historyType = {
   changeNum: number;
   changeReason: string;
   comment: string;
+  beforeChangeNum?: number;
 }
 
 const GET_MANAGEMENT_DATA_AT_ID = gql `
@@ -113,6 +119,42 @@ const ADD_HISTORY = gql `
   }
 `;
 
+const CHANGE_HISTORY = gql `
+  mutation($dataHistory: HistoryInput!) {
+    changeHistory(data_history: $dataHistory) {
+      id
+      management_id
+      change_num
+      change_reason
+      comment
+      change_date
+    }
+  }
+`;
+
+const CHANGE_CURRENT_NUM = gql `
+  mutation($managementData: CurrentNumInput!) {
+    changeCurrentNum(management_data: $managementData) {
+      id
+      data_name
+      current_num
+    }
+  }
+`;
+
+const DELETE_HISTORY = gql `
+  mutation($id: Int!) {
+    deleteHistory(id: $id) {
+      id
+      management_id
+      change_num
+      change_reason
+      comment
+      change_date
+    }
+  }
+`;
+
 type HistoryInput = {
   managementId: number,
   changeDate: string,
@@ -120,6 +162,11 @@ type HistoryInput = {
   changeReason: string,
   comment?: string,
   currentNum: number,
+}
+
+enum DialogType {
+  edit = 1,
+  delete = 2,
 }
 
 const Data: NextPage = () => {
@@ -136,6 +183,17 @@ const Data: NextPage = () => {
     }],
   });
 
+  const [changeHistory] = useMutation(CHANGE_HISTORY);
+
+  const [changeCurrentNum] = useMutation(CHANGE_CURRENT_NUM, {
+    refetchQueries: [{
+      query: GET_MANAGEMENT_DATA_AT_ID,
+      variables: { dataId: Number(id) }
+    }],
+  });
+
+  const [deleteHistory] = useMutation(DELETE_HISTORY);
+
   const {
     control,
     handleSubmit,
@@ -151,6 +209,13 @@ const Data: NextPage = () => {
   })
 
   const [pageSize, setPageSize] = React.useState<number>(5);
+  const [changeHistories, setChangeHistories] = React.useState([] as historyType[]);
+  const [open, setOpen] = React.useState(false);
+  const [dialogTitle, setDialogTitle] = React.useState('');
+  const [dialogContent, setDialogContent] = React.useState('');
+  const [dialogType, setDialogType] = React.useState(0);
+  const rows: historyType[] = [];
+  const selRows = React.useRef([]);
 
   if (loading) {
     return (<Backdrop
@@ -164,8 +229,7 @@ const Data: NextPage = () => {
   if (error) return <p>エラーが発生しています</p>;
 
   const { managementDataAtId } = data;
-  const rows: historyType[] = [];
-  managementDataAtId.data_history.map((history: any) => {
+  managementDataAtId.data_history.forEach((history: any) => {
     rows.push({
       id: history.id,
       date: new Date(history.change_date).toLocaleDateString(),
@@ -203,21 +267,128 @@ const Data: NextPage = () => {
     reset();
   }
 
-
+  // データ行編集
   const changeCell = (v: any) => {
-    console.log(v);
+    const rowsIdx = rows.findIndex(d => d.id === v.id);
+    const row = rows[rowsIdx];
+    const changeColumn: keyof historyType = v.field;
+    const changeValue: string | number  = v.value as never;
+    // 行を編集しなかった場合は何もしない
+    if (row[changeColumn] === changeValue) {
+      return;
+    }
+    row.beforeChangeNum = row.changeNum;
+    row[changeColumn] = changeValue;
+    const idx = changeHistories.findIndex(d => d.id === v.id);
+    if (idx >= 0) {
+      changeHistories[idx][changeColumn] = changeValue;
+    } else {
+      changeHistories.push(row);
+    }
+    setChangeHistories(changeHistories);
   }
 
-  const updateHistory = () => {
-    
+  // 編集ボタン
+  const updateHistoryBtn = () => {
+    if (changeHistories.length === 0) {
+      return;
+    }
+    setDialogTitle('履歴の編集');
+    setDialogContent('履歴を編集します。よろしいですか？');
+    setDialogType(DialogType.edit);
+    setOpen(true);
   }
 
-  const deleteHistory = () => {
-    
+  // 削除ボタン
+  const deleteHistoryBtn = () => {
+    if (selRows.current.length === 0) return;
+    setDialogTitle('履歴の削除');
+    setDialogContent('履歴を削除します。よろしいですか？');
+    setDialogType(DialogType.delete);
+    setOpen(true);
+  }
+
+  // ダイアログを閉じる
+  const dialogClose = () => {
+    setOpen(false);
+    setChangeHistories([]);
+  }
+
+  // ダイアログOK
+  const dialogOk = () => {
+    let currentNum = managementDataAtId.current_num;
+    if (dialogType === DialogType.edit) {
+      let changeNum = 0;
+      for (const row of changeHistories) {
+        if (row.beforeChangeNum) {
+          changeNum += row.changeNum - row.beforeChangeNum;
+        }
+        changeHistory({
+          variables: {
+            dataHistory: {
+              id: row.id,
+              management_id: Number(id),
+              change_date: row.date.replaceAll('/', '-'),
+              change_num: row.changeNum,
+              change_reason: row.changeReason,
+              comment: row.comment,
+            },
+          },
+        });
+      };
+      changeCurrentNum({
+        variables: {
+          managementData: {
+            id: Number(id),
+            current_num: currentNum + changeNum
+          },
+        },
+      });
+    } else {
+      for (const row of selRows.current) {
+        const history: historyType | undefined = rows.find((v) => v.id === row);
+        if (history) {
+          currentNum -= history.changeNum;
+        }
+        deleteHistory({
+          variables: { id: row }
+        });
+      }
+      changeCurrentNum({
+        variables: {
+          managementData: {
+            id: Number(id),
+            current_num: currentNum,
+          },
+        },
+      });
+    }
+    dialogClose();
   }
 
   return (
     <LayoutComponent>
+      <Dialog
+        open={open}
+        onClose={dialogClose}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          {dialogTitle}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            {dialogContent}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={dialogOk}>はい</Button>
+          <Button onClick={dialogClose}>
+            いいえ
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Grid item xs={12}>
         <Paper
           sx={{
@@ -239,8 +410,8 @@ const Data: NextPage = () => {
         <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
           <Histories>
             <Box component='div' sx={{ p: 2, textAlign: 'right' }}>
-              <Button variant="contained" color='primary' onClick={updateHistory}>編集</Button>
-              <Button variant="contained" color='warning' onClick={deleteHistory} sx={{ml: 1}}>削除</Button>
+              <Button variant="contained" color='primary' onClick={updateHistoryBtn}>編集</Button>
+              <Button variant="contained" color='warning' onClick={deleteHistoryBtn} sx={{ml: 1}}>削除</Button>
             </Box>
             <div style={{ height: 411, width: '100%' }}>
               <DataGrid
@@ -259,6 +430,7 @@ const Data: NextPage = () => {
                 components={{
                   Toolbar: CustomToolbar,
                 }}
+                onSelectionModelChange={(v) => selRows.current = v as never} 
               />
             </div>
           </Histories>
