@@ -30,19 +30,6 @@ import LayoutComponent from '../../components/layout';
 import Histories from '../../components/History';
 import Title from '../../components/Title';
 
-// CSV出力用のツールバー
-const CustomToolbar = ()  => {
-  const csvOptions: GridCsvExportOptions = {
-    fileName: 'data.csv',
-    utf8WithBom: true,
-  };
-  return (
-    <GridToolbarContainer>
-        <GridCsvExportMenuItem options={csvOptions} />
-    </GridToolbarContainer>
-  );
-}
-
 // データテーブル設定
 const columns: GridColDef[] = [
   {
@@ -236,6 +223,24 @@ const Data: NextPage = () => {
       comment: history.comment
     });
   });
+
+  // CSV出力用のツールバー
+  const CustomToolbar = ()  => {
+    const year = new Date().getFullYear().toString();
+    const month = new Date().getMonth() + 1;
+    const monthStr = month.toString().padStart(2, '0');
+    const date = new Date().getDate().toString().padStart(2, '0');
+
+    const csvOptions: GridCsvExportOptions = {
+      fileName: `${year}${monthStr}${date}_${managementDataAtId.data_name}`,
+      utf8WithBom: true,
+    };
+    return (
+      <GridToolbarContainer>
+          <GridCsvExportMenuItem options={csvOptions} />
+      </GridToolbarContainer>
+    );
+  }
 
   const validationRules = {
     addDate: {

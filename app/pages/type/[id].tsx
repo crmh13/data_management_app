@@ -26,19 +26,6 @@ import PieRechart from '../../components/PieRechart';
 import Title from '../../components/Title';
 import { DataType } from '../../types/type';
 
-// CSV出力用のツールバー
-const CustomToolbar = ()  => {
-  const csvOptions: GridCsvExportOptions = {
-    fileName: 'data.csv',
-    utf8WithBom: true,
-  };
-  return (
-    <GridToolbarContainer>
-        <GridCsvExportMenuItem options={csvOptions} />
-    </GridToolbarContainer>
-  );
-}
-
 // データテーブル設定
 const columns: GridColDef[] = [
   { field: 'date', headerName: '日付', width: 150 },
@@ -179,6 +166,24 @@ const Type: NextPage = () => {
     addData: {
       required: 'データ名を入力してください。',
     }
+  }
+
+  // CSV出力用のツールバー
+  const CustomToolbar = ()  => {
+    const year = new Date().getFullYear().toString();
+    const month = new Date().getMonth() + 1;
+    const monthStr = month.toString().padStart(2, '0');
+    const date = new Date().getDate().toString().padStart(2, '0');
+    console.log(managementData)
+    const csvOptions: GridCsvExportOptions = {
+      fileName: `${year}${monthStr}${date}_${id}.csv`,
+      utf8WithBom: true,
+    };
+    return (
+      <GridToolbarContainer>
+          <GridCsvExportMenuItem options={csvOptions} />
+      </GridToolbarContainer>
+    );
   }
 
   const onSubmit: SubmitHandler<DataInput> = (data: DataInput) => {
