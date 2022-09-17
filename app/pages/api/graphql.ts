@@ -1,6 +1,6 @@
 import { ApolloServer, gql } from "apollo-server-micro";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { management_data, PrismaClient } from "@prisma/client";
+import { management_data, PrismaClient, type_mst } from "@prisma/client";
 import { GraphQLScalarType, Kind } from "graphql";
 
 const dateScalar = new GraphQLScalarType({
@@ -56,15 +56,25 @@ const typeDefs = gql`
 
   type Mutation {
     createType(type_name: String!): Type
+    changeType(type: TypeInput!): Type
+    deleteType(id: Int!): Type
     createData(management_data: DataInput!): ManagementData
+    changeData(management_data: DataInput!): ManagementData
+    deleteData(id: Int!): ManagementData
     addHistory(data_history: HistoryInput!): DataHistory
     changeHistory(data_history: HistoryInput!): DataHistory
     changeCurrentNum(management_data: CurrentNumInput!): ManagementData
-    deleteHistory(id: Int!): DataHistory
+    deleteHistory(type: TypeInput!): DataHistory
+  }
+
+  input TypeInput {
+    id: Int!
+    type_name: String!
   }
 
   input DataInput {
-    type_id: Int!
+    id: Int
+    type_id: Int
     data_name: String!
   }
 
@@ -100,7 +110,8 @@ const resolvers = {
           management: {
             where: { delete_flg: false }
           }
-        }
+        },
+        orderBy: [{ id: 'asc' }],
       });
     },
     managementData: async (parent: undefined, args: {type_id: number}, context: Context) => {
@@ -152,6 +163,24 @@ const resolvers = {
         }
       })
     },
+    changeType: async (parent: undefined, args: {type: type_mst}, context: Context) => {
+      return await context.prisma.type_mst.update({
+        where: { id: args.type.id },
+        data: {
+          type_name: args.type.type_name,
+          updated_at: new Date(),
+        },
+      });
+    },
+    deleteType: async (parent: undefined, args: {id: number}, context: Context) => {
+      return await context.prisma.type_mst.update({
+        where: { id: args.id },
+        data: {
+          delete_flg: true,
+          updated_at: new Date(),
+        },
+      });
+    },
     createData: async (parent: undefined, args: {management_data: management_data}, context: Context) => {
       return await context.prisma.management_data.create({
         data: {
@@ -161,6 +190,24 @@ const resolvers = {
           current_num: 0,
         }
       })
+    },
+    changeData: async (parent: undefined, args: {management_data: management_data}, context: Context) => {
+      return await context.prisma.management_data.update({
+        where: { id: args.management_data.id },
+        data: {
+          data_name: args.management_data.data_name,
+          updated_at: new Date(),
+        },
+      });
+    },
+    deleteData: async (parent: undefined, args: {id: number}, context: Context) => {
+      return await context.prisma.management_data.update({
+        where: { id: args.id },
+        data: {
+          delete_flg: true,
+          updated_at: new Date(),
+        },
+      });
     },
     addHistory: async (parent: undefined, args: {data_history: any}, context: Context) => {
       await context.prisma.data_history.create({
