@@ -58,6 +58,9 @@ const typeDefs = gql`
     createType(type_name: String!): Type
     createData(management_data: DataInput!): ManagementData
     addHistory(data_history: HistoryInput!): DataHistory
+    changeHistory(data_history: HistoryInput!): DataHistory
+    changeCurrentNum(management_data: CurrentNumInput!): ManagementData
+    deleteHistory(id: Int!): DataHistory
   }
 
   input DataInput {
@@ -66,11 +69,17 @@ const typeDefs = gql`
   }
 
   input HistoryInput {
+    id: Int
     management_id: Int!
     change_date: Date!
     change_num: Int!
     change_reason: String!
     comment: String
+    current_num: Int
+  }
+
+  input CurrentNumInput {
+    id: Int!
     current_num: Int!
   }
 `;
@@ -106,6 +115,7 @@ const resolvers = {
             }
           ]
         },
+        orderBy: [{ id: 'asc' }],
         select: {
           id: true,
           type_id: true,
@@ -128,7 +138,7 @@ const resolvers = {
           data_history: {
             orderBy:[{ change_date: 'desc' }],
             where: { delete_flg: false }
-          }
+          },
         },
       })
     }
@@ -164,9 +174,43 @@ const resolvers = {
       });
       await context.prisma.management_data.update({
         where: { id: args.data_history.management_id },
-        data: { current_num: args.data_history.current_num }
+        data: {
+          current_num: args.data_history.current_num,
+          updated_at: new Date(),
+        },
       });
-    }
+    },
+    changeHistory: async (parent: undefined, args: {data_history: any}, context: Context) => {
+      await context.prisma.data_history.update({
+        where: { id: args.data_history.id },
+        data: {
+          management_id: args.data_history.management_id,
+          change_num: args.data_history.change_num,
+          change_reason: args.data_history.change_reason,
+          change_date: args.data_history.change_date,
+          comment: args.data_history.comment,
+          updated_at: new Date(),
+        }
+      });
+    },
+    changeCurrentNum: async (parent: undefined, args: {management_data: any}, context: Context) => {
+      await context.prisma.management_data.update({
+        where: { id: args.management_data.id },
+        data: {
+          current_num: args.management_data.current_num,
+          updated_at: new Date(),
+        },
+      });
+    },
+    deleteHistory: async (parent: undefined, args: {id: number}, context: Context) => {
+      await context.prisma.data_history.update({
+        where: { id: args.id },
+        data: {
+          delete_flg: true,
+          updated_at: new Date(),
+        },
+      });
+    },
   }
 };
 

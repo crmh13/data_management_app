@@ -220,8 +220,7 @@ const Type: NextPage = () => {
           <PieRechart data={managementData} />
         </Paper>
       </Grid>
-      {rows &&
-        <Grid item xs={12}>
+      <Grid item xs={12}>
         <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column' }}>
           <Histories>
             <div style={{ height: 411, width: '100%' }}>
@@ -243,7 +242,6 @@ const Type: NextPage = () => {
         </Histories>
         </Paper>
       </Grid>
-      }
       <Grid item xs={12}>
           <Title>追加</Title>
           <Stack component="form" noValidate  onSubmit={handleSubmit(onSubmit)}
