@@ -184,15 +184,13 @@ const Data: NextPage = () => {
   });
 
   const [changeHistory] = useMutation(CHANGE_HISTORY);
-
+  const [deleteHistory] = useMutation(DELETE_HISTORY);
   const [changeCurrentNum] = useMutation(CHANGE_CURRENT_NUM, {
     refetchQueries: [{
       query: GET_MANAGEMENT_DATA_AT_ID,
       variables: { dataId: Number(id) }
     }],
   });
-
-  const [deleteHistory] = useMutation(DELETE_HISTORY);
 
   const {
     control,

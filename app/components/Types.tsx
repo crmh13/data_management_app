@@ -38,6 +38,7 @@ const DELETE_TYPE = gql `
   mutation($id: Int!) {
     deleteType(id: $id) {
       id
+      type_name
     }
   }
 `;
@@ -72,10 +73,32 @@ export default function Types(props: TypesProps) {
   const [changeType] = useMutation(CHANGE_TYPE);
   const [changeData] = useMutation(CHANGE_MANAGEMENT_DATA);
   const [deleteType] = useMutation(DELETE_TYPE, {
-    refetchQueries: ['GetTypes'],
+    update(cache, { data: { deleteType }}) {
+      cache.modify({
+        fields: {
+          types(existingTypeRefs = [], { readField }) {
+            const newTypeList = existingTypeRefs.filter((type: any) => {
+              return readField('id', type) !== deleteType.id;
+            });
+            return [...newTypeList];
+          },
+        },
+      });
+    }
   });
   const [deleteData] = useMutation(DELETE_DATA, {
-    refetchQueries: ['GetManagementData'],
+    update(cache, { data: { deleteData }}) {
+      cache.modify({
+        fields: {
+          managementData(existingDataRefs = [], { readField }) {
+            const newDataList = existingDataRefs.filter((data: any) => {
+              return readField('id', data) !== deleteData.id;
+            });
+            return [...newDataList];
+          },
+        },
+      });
+    }
   });
 
   const {
