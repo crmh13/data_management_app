@@ -163,13 +163,7 @@ const Data: NextPage = () => {
     variables: { dataId: Number(id) }
   });
 
-  const [addHistory] = useMutation(ADD_HISTORY, {
-    refetchQueries: [{
-      query: GET_MANAGEMENT_DATA_AT_ID,
-      variables: { dataId: Number(id) }
-    }],
-  });
-
+  const [addHistory] = useMutation(ADD_HISTORY);
   const [changeHistory] = useMutation(CHANGE_HISTORY);
   const [deleteHistory] = useMutation(DELETE_HISTORY);
   const [changeCurrentNum] = useMutation(CHANGE_CURRENT_NUM, {
@@ -263,10 +257,17 @@ const Data: NextPage = () => {
           change_num: Number(data.changeNum),
           change_reason: data.changeReason,
           comment: data.comment,
-          current_num: managementDataAtId.current_num + Number(data.changeNum)
         }
       }
-    })
+    });
+    changeCurrentNum({
+      variables: {
+        managementData: {
+          id: Number(id),
+          current_num: managementDataAtId.current_num + Number(data.changeNum)
+        },
+      },
+    });
     reset();
   }
 
