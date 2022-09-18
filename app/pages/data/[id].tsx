@@ -26,9 +26,11 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress';
+import { format } from 'date-fns';
 import LayoutComponent from '../../components/layout';
 import Histories from '../../components/History';
 import Title from '../../components/Title';
+import { isValidDate } from '../../utils/DateCheck';
 
 // データテーブル設定
 const columns: GridColDef[] = [
@@ -36,6 +38,10 @@ const columns: GridColDef[] = [
     field: 'date',
     headerName: '日付',
     width: 150,
+    cellClassName: (params: GridCellParams<string>) => {
+      if (!params.value || !isValidDate(params.value)) return 'error';
+      return '';
+    },
     editable: true,
   },
   {
@@ -44,7 +50,7 @@ const columns: GridColDef[] = [
     type: 'number',
     width: 150,
     cellClassName: (params: GridCellParams<number>) => {
-      if (!params.value) return '';
+      if (!params.value) return 'error';
       if (params.value < 0) return 'negative';
       return '';
     },
@@ -55,6 +61,10 @@ const columns: GridColDef[] = [
     headerName: '変更理由',
     sortable: false,
     width: 300,
+    cellClassName: (params: GridCellParams<string>) => {
+      if (!params.value) return 'error';
+      return '';
+    },
     editable: true,
   },
   {
@@ -190,6 +200,7 @@ const Data: NextPage = () => {
   const [pageSize, setPageSize] = React.useState<number>(5);
   const [changeHistories, setChangeHistories] = React.useState([] as historyType[]);
   const [open, setOpen] = React.useState(false);
+  const [openError, setOpenError] = React.useState(false);
   const [dialogTitle, setDialogTitle] = React.useState('');
   const [dialogContent, setDialogContent] = React.useState('');
   const [dialogType, setDialogType] = React.useState(0);
@@ -211,7 +222,7 @@ const Data: NextPage = () => {
   managementDataAtId.data_history.forEach((history: any) => {
     rows.push({
       id: history.id,
-      date: new Date(history.change_date).toLocaleDateString(),
+      date: format(new Date(history.change_date), 'yyyy-MM-dd'),
       changeNum: history.change_num,
       changeReason: history.change_reason,
       comment: history.comment
@@ -220,13 +231,10 @@ const Data: NextPage = () => {
 
   // CSV出力用のツールバー
   const CustomToolbar = ()  => {
-    const year = new Date().getFullYear().toString();
-    const month = new Date().getMonth() + 1;
-    const monthStr = month.toString().padStart(2, '0');
-    const date = new Date().getDate().toString().padStart(2, '0');
+    const today = format(new Date(), 'yyyyMMdd');
 
     const csvOptions: GridCsvExportOptions = {
-      fileName: `${year}${monthStr}${date}_${managementDataAtId.data_name}`,
+      fileName: `${today}_${managementDataAtId.data_name}`,
       utf8WithBom: true,
     };
     return (
@@ -297,6 +305,12 @@ const Data: NextPage = () => {
     if (changeHistories.length === 0) {
       return;
     }
+    for (const row of changeHistories) {
+      if (!isValidDate(row.date) || !row.changeNum || !row.changeReason) {
+        setOpenError(true)
+        return;
+      }
+    }
     setDialogTitle('履歴の編集');
     setDialogContent('履歴を編集します。よろしいですか？');
     setDialogType(DialogType.edit);
@@ -315,6 +329,7 @@ const Data: NextPage = () => {
   // ダイアログを閉じる
   const dialogClose = () => {
     setOpen(false);
+    setOpenError(false);
     setChangeHistories([]);
   }
 
@@ -332,7 +347,7 @@ const Data: NextPage = () => {
             dataHistory: {
               id: row.id,
               management_id: Number(id),
-              change_date: row.date.replaceAll('/', '-'),
+              change_date: row.date,
               change_num: row.changeNum,
               change_reason: row.changeReason,
               comment: row.comment,
@@ -372,6 +387,26 @@ const Data: NextPage = () => {
 
   return (
     <LayoutComponent>
+      <Dialog
+        open={openError}
+        onClose={dialogClose}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          編集エラー
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            編集項目が不正です。編集できませんでした。
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={dialogClose}>
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Dialog
         open={open}
         onClose={dialogClose}
@@ -420,7 +455,12 @@ const Data: NextPage = () => {
             <div style={{ height: 411, width: '100%' }}>
               <DataGrid
                 sx={{
-                  '.negative': { color: 'red' }
+                  '.negative': { color: 'red' },
+                  '.error': {
+                    backgroundColor: '#FFEFEF',
+                    borderColor: '#D4440D',
+                    color: '#C25338',
+                  },
                 }}
                 localeText={jaJP.components.MuiDataGrid.defaultProps.localeText}
                 rows={rows}
