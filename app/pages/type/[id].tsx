@@ -19,6 +19,7 @@ import {
 } from '@mui/x-data-grid';
 import Backdrop from '@mui/material/Backdrop';
 import CircularProgress from '@mui/material/CircularProgress'
+import { format } from 'date-fns';
 import LayoutComponent from '../../components/layout';
 import Types from '../../components/Types';
 import Histories from '../../components/History';
@@ -147,7 +148,7 @@ const Type: NextPage = () => {
     data.data_history.map((history: any) => {
       rows.push({
         id: history.id,
-        date: new Date(history.change_date).toLocaleDateString(),
+        date: format(new Date(history.change_date), 'yyyy-MM-dd'),
         dataName: data.data_name,
         changeNum: history.change_num,
         changeReason: history.change_reason,
@@ -170,13 +171,9 @@ const Type: NextPage = () => {
 
   // CSV出力用のツールバー
   const CustomToolbar = ()  => {
-    const year = new Date().getFullYear().toString();
-    const month = new Date().getMonth() + 1;
-    const monthStr = month.toString().padStart(2, '0');
-    const date = new Date().getDate().toString().padStart(2, '0');
-    console.log(managementData)
+    const today = format(new Date(), 'yyyyMMdd');
     const csvOptions: GridCsvExportOptions = {
-      fileName: `${year}${monthStr}${date}_${id}.csv`,
+      fileName: `${today}_${id}.csv`,
       utf8WithBom: true,
     };
     return (
