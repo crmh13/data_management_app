@@ -9,8 +9,18 @@ services:
       - ./app:/app
     ports:
       - "3000:3000"
+      - "5555:5555"
     tty: true
-    command: /bin/sh
+    depends_on:
+      db:
+        condition: service_healthy
+    # command: /bin/sh
+    # command: /bin/sh -c "yarn start"
+    command: >
+      /bin/sh -c "
+      npx prisma migrate deploy --preview-feature &&
+      yarn build &&
+      yarn start"
   db:
     image: postgres:14.5-alpine
     container_name: postgres
@@ -22,3 +32,8 @@ services:
       - ./postgres.env
     environment: 
       - TZ=Asia/Tokyo
+    healthcheck:
+      test: [ "CMD-SHELL", "psql -d $${POSTGRES_DB} -U $${POSTGRES_USER} -l"]
+      interval: 5s
+      timeout: 100s
+      retries: 20
