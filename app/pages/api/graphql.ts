@@ -256,6 +256,8 @@ const resolvers = {
 const apolloServer = new ApolloServer({
   typeDefs,
   resolvers,
+  cache: 'bounded',
+  csrfPrevention: true,
   context: {
     prisma,
   },

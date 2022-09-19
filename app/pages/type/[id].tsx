@@ -198,24 +198,24 @@ const Type: NextPage = () => {
   return (
     <LayoutComponent>
       {managementData.map((data: any) => 
-        <Grid item xs={12} md={4} lg={3}>
-        <Paper
-          sx={{
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            height: 150,
-          }}
-        >
-          <Types
-            title={data.data_name}
-            url={`/data/${data.id}`}
-            num={data.current_num}
-            id={data.id}
-            dataType={DataType.Data}
-          />
-        </Paper>
-      </Grid>
+        <Grid item xs={12} md={4} lg={3} key={data.id}>
+          <Paper
+            sx={{
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              height: 150,
+            }}
+          >
+            <Types
+              title={data.data_name}
+              url={`/data/${data.id}`}
+              num={data.current_num}
+              id={data.id}
+              dataType={DataType.Data}
+            />
+          </Paper>
+        </Grid>
       )}
       <Grid item xs={12}>
         <Paper
@@ -223,7 +223,7 @@ const Type: NextPage = () => {
             p: 2,
             display: 'flex',
             flexDirection: 'column',
-            height: 350,
+            height: 370,
           }}
         >
           <PieRechart data={managementData} />

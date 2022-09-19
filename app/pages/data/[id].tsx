@@ -497,7 +497,7 @@ const Data: NextPage = () => {
               width: {
                 xs: '40ch',
                 md: '40ch',
-                lg: '45ch'
+                lg: '40ch'
               }},
             }}>
           <Controller
