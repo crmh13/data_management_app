@@ -113,24 +113,24 @@ const Home: NextPage = () => {
   return (
     <LayoutComponent>
       {types.map((type: any) => 
-        <Grid item xs={12} md={4} lg={3}>
-        <Paper
-          sx={{
-            p: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            height: 150,
-          }}
-        >
-          <Types
-            title={type.type_name}
-            url={`/type/${type.id}`}
-            num={totalNum(type.management)}
-            id={type.id}
-            dataType={DataType.Type}
-          />
-        </Paper>
-      </Grid>
+        <Grid item xs={12} md={4} lg={3} key={type.id}>
+          <Paper
+            sx={{
+              p: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              height: 150,
+            }}
+          >
+            <Types
+              title={type.type_name}
+              url={`/type/${type.id}`}
+              num={totalNum(type.management)}
+              id={type.id}
+              dataType={DataType.Type}
+            />
+          </Paper>
+        </Grid>
       )}
       <Grid item xs={12}>
           <Title>追加</Title>
