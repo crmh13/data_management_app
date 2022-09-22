@@ -146,7 +146,7 @@ const resolvers = {
           data_name: true,
           current_num: true,
           data_history: {
-            orderBy:[{ change_date: 'desc' }],
+            orderBy:[{ change_date: 'desc' }, { id: 'desc'}],
             where: { delete_flg: false }
           },
         },
