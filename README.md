@@ -71,6 +71,19 @@ ready - started server on 0.0.0.0:3000, url: http://localhost:3000
 | created_at    | timestamp    |      |      | ○          | 作成日時 |
 | updated_at    | timestamp    |      |      | ○          | 更新日時 |
 
+### 月次集計(monthly_aggregation)
+| カラム        | 型            | PK  | INDEX | Not Null  | 備考 |
+| ------------- | ------------ | ---- | ---- | ---------- | ----- |
+| id            | integer      | ○    |      | ○          | ID |
+| management_id | integer      |      | ○    | ○          | 管理データID |
+| aggregate_num | integer      |      |      | ○          | 集計値 |
+| aggregate_date| date         |      |      | ○     　　 | 集計日 |
+| delete_flg    | boolean      |      | ○    | ○          | 削除フラグ |
+| created_at    | timestamp    |      |      | ○          | 作成日時 |
+| updated_at    | timestamp    |      |      | ○          | 更新日時 |
+
+※ 月次集計はmonthly_aggregation.shを実行するとデータが挿入される毎月1日とかに定期実行されるとよい
+
 DBへの接続はdockerコンテナが起動している状態で(docker-compose upコマンドを使用している場合は別ターミナルを立ち上げる)以下コマンドでコンテナに入る  
 `docker-compose exec app sh`  
 コンテナに入った後以下コマンドを実行  
