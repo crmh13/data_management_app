@@ -173,7 +173,7 @@ const Type: NextPage = () => {
   const CustomToolbar = ()  => {
     const today = format(new Date(), 'yyyyMMdd');
     const csvOptions: GridCsvExportOptions = {
-      fileName: `${today}_${id}.csv`,
+      fileName: `${today}_${id}`,
       utf8WithBom: true,
     };
     return (
