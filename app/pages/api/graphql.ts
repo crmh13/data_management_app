@@ -37,6 +37,7 @@ const typeDefs = gql`
     data_name: String!
     current_num: Int!
     data_history: [DataHistory]
+    monthly_aggregation: [MonthlyAggregation]
   }
 
   type DataHistory {
@@ -46,6 +47,13 @@ const typeDefs = gql`
     change_reason: String!
     comment: String
     change_date: Date!
+  }
+
+  type MonthlyAggregation {
+    id: Int!
+    management_id: Int!
+    aggregate_num: Int!
+    aggregate_date: Date!
   }
 
   type Query {
@@ -133,7 +141,7 @@ const resolvers = {
           current_num: true,
           data_history: {
             where: { delete_flg: false }
-          }
+          },
         }
       })
     },
@@ -148,6 +156,11 @@ const resolvers = {
           data_history: {
             orderBy:[{ change_date: 'desc' }, { id: 'desc'}],
             where: { delete_flg: false }
+          },
+          monthly_aggregation: {
+            orderBy: [{ aggregate_date: 'desc' }],
+            where: { delete_flg: false },
+            take: 12,
           },
         },
       })

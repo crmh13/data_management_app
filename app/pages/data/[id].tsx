@@ -30,6 +30,7 @@ import { format } from 'date-fns';
 import LayoutComponent from '../../components/layout';
 import Histories from '../../components/History';
 import Title from '../../components/Title';
+import LineRechart from '../../components/LineRecchart';
 import { isValidDate } from '../../utils/DateCheck';
 
 // データテーブル設定
@@ -98,6 +99,12 @@ const GET_MANAGEMENT_DATA_AT_ID = gql `
         change_reason
         comment
         change_date
+      }
+      monthly_aggregation {
+        id
+        management_id
+        aggregate_num
+        aggregate_date
       }
     }
   }
@@ -428,13 +435,25 @@ const Data: NextPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
-      <Grid item xs={12}>
+      <Grid item xs={12} md={8} lg={9}>
+                <Paper
+                  sx={{
+                    p: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: 240,
+                  }}
+                >
+                  <LineRechart data={managementDataAtId.monthly_aggregation} />
+                </Paper>
+              </Grid>
+      <Grid item xs={12} md={4} lg={3}>
         <Paper
           sx={{
             p: 2,
             display: 'flex',
             flexDirection: 'column',
-            height: 150,
+            height: 240,
           }}
         >
           <Title>

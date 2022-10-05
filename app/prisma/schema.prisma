@@ -30,6 +30,7 @@ model management_data {
   created_at DateTime @default(now())
   updated_at DateTime @default(now())
   data_history data_history[]
+  monthly_aggregation monthly_aggregation[]
   @@index(fields: [type_id])
   @@index(fields: [delete_flg])
 }
@@ -42,6 +43,19 @@ model data_history {
   change_reason String @db.VarChar(255)
   comment String? @db.Text
   change_date DateTime @db.Date
+  delete_flg Boolean @default(false)
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+  @@index(fields: management_id)
+  @@index(fields: delete_flg)
+}
+
+model monthly_aggregation {
+  id Int @id @default(autoincrement())
+  management management_data @relation(fields: [management_id], references: [id])
+  management_id Int
+  aggregate_num Int
+  aggregate_date DateTime @db.Date
   delete_flg Boolean @default(false)
   created_at DateTime @default(now())
   updated_at DateTime @default(now())
