@@ -17,9 +17,7 @@ export default function LineRechart(props: any) {
   const data: monthlyAggregation[] = props.data.map((data: any) => {
     return createData(format(new Date(data.aggregate_date), 'MM月'), data.aggregate_num);
   })
-  data.sort((a, b): number => {
-    return a.month > b.month ? 1 : -1; 
-  })
+  data.reverse();
   const theme = useTheme();
 
   return (
